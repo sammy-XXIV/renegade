@@ -35,7 +35,7 @@ export const auditPaymentMiddleware = paymentMiddleware(
         },
       ],
       description:
-        "Renegade hires itself out as your attacker. It takes a smart contract — deployed address or source — compiles it, and attacks it from a hacker's perspective: forking the live chain and running real exploit code against the actual bytecode, not just reading it for red flags. Every finding comes with the executed Foundry PoC that proved it, rated by severity and likelihood, plus the hypotheses it tried and ruled out. No source code required — works directly from a contract address. " +
+        "Renegade hires itself out as your attacker. Submit a deployed address, a git repo, raw bytecode, or inline source — it compiles or decodes what it's given, and attacks it from a hacker's perspective: forking the live chain and running real exploit code against the actual bytecode, not just reading it for red flags. Every finding comes with the executed Foundry PoC that proved it, rated by severity and likelihood, plus the hypotheses it tried and ruled out. No source code required — works directly from a contract address or raw bytecode. " +
         "Checks: reentrancy, access control, missing authorization, integer issues, precision loss, flash loan attacks, oracle manipulation, front-running, MEV exploits, signature replay, permit misuse, timestamp manipulation, governance attacks, economic exploits, griefing attacks, DoS attacks, state desynchronization, upgradeability issues, storage collisions, initialization flaws, unchecked external calls, ERC20 non-standard behavior, token inflation, reward accounting bugs, liquidity manipulation, cross-chain assumptions, and insolvency risks.",
       mimeType: "application/json",
     },

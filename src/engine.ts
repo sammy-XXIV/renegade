@@ -67,8 +67,10 @@ function scopeToPrompt(scope: unknown): string {
   if (s.chain) lines.push(`Chain / RPC: ${JSON.stringify(s.chain)}`);
   if (s.explorer) lines.push(`Explorer API base: ${s.explorer}`);
   if (s.source) lines.push(`Inline source provided (see below).`);
+  if (s.bytecode) lines.push(`Raw bytecode provided (see below) — not yet deployed, or deployed but unverified.`);
   if (s.notes) lines.push(`Notes from submitter: ${s.notes}`);
   if (s.source) lines.push("\n--- SUBMITTED SOURCE ---\n" + String(s.source));
+  if (s.bytecode) lines.push("\n--- SUBMITTED BYTECODE ---\n" + String(s.bytecode));
   return lines.join("\n");
 }
 

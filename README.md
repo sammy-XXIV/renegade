@@ -31,6 +31,7 @@ Provide at least one target:
     "addresses": ["0x..."],                     "chain": { "rpc": "https://...", "id": 196 },
     "explorer": "https://<blockscout-host>/api/v2",
     "source": "// inline Solidity (alternative to repo)",
+    "bytecode": "0x608060... (alternative to repo/address — e.g. not-yet-deployed or unverified)",
     "notes": "anything the submitter wants Renegade to know / known-issues doc URL"
   }
 }

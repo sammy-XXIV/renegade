@@ -38,21 +38,25 @@ function startAudit(jobId: string, scope: unknown): void {
 // and never reach this handler (so the audit engine only ever runs for a
 // settled payment).
 app.post("/audit", auditPaymentMiddleware, (req, res) => {
-  console.log("[argus] paid audit request received");
+  console.log("[renegade] paid audit request received");
   const scope = req.body?.scope ?? req.body;
 
   // Basic scope validation — must give us something to audit.
   const s = scope as Record<string, unknown> | undefined;
-  const hasTarget = s && (s.repo || s.addresses || s.source);
+  const hasTarget = s && (s.repo || s.addresses || s.source || s.bytecode);
   if (!hasTarget) {
     res.status(400).json({
       error:
-        "scope must include at least one of: repo (git URL), addresses (+chain/explorer), or source (inline Solidity).",
+        "scope must include at least one of: repo (git URL), addresses (+chain/explorer), source (inline Solidity), or bytecode (raw hex, e.g. for a not-yet-deployed or unverified contract).",
     });
     return;
   }
   if (s?.source && String(s.source).length > config.maxInputScopeChars) {
     res.status(400).json({ error: `inline source exceeds ${config.maxInputScopeChars} chars; submit a repo instead.` });
+    return;
+  }
+  if (s?.bytecode && String(s.bytecode).length > config.maxInputScopeChars) {
+    res.status(400).json({ error: `bytecode exceeds ${config.maxInputScopeChars} chars.` });
     return;
   }
 
