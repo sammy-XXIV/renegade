@@ -1,4 +1,4 @@
-// The Argus audit engine: an Anthropic tool-use loop that runs the bug-hunt
+// The Renegade audit engine: an Anthropic tool-use loop that runs the bug-hunt
 // methodology autonomously against a submitted scope, bounded by hard caps
 // (iterations / wall-clock / tokens) so one job can't eat the fee.
 //

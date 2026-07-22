@@ -1,8 +1,8 @@
-# Argus
+# Renegade
 
 Adversarial smart-contract security auditor, packaged as an x402-paid A2MCP agent on X Layer.
 
-Submit a scope → Argus runs a **full agentic audit** (live-code review + Foundry PoCs) inside a sandboxed container → returns a severity-rated findings report. Same methodology as the `bug-hunt` skill: audit the deployed bytecode not the docs, kill false positives before claiming them, prove every real bug with a runnable PoC.
+Submit a scope → Renegade runs a **full agentic audit** (live-code review + Foundry PoCs) inside a sandboxed container → returns a severity-rated findings report. Same methodology as the `bug-hunt` skill: audit the deployed bytecode not the docs, kill false positives before claiming them, prove every real bug with a runnable PoC.
 
 ## How it works
 
@@ -31,7 +31,7 @@ Provide at least one target:
     "addresses": ["0x..."],                     "chain": { "rpc": "https://...", "id": 196 },
     "explorer": "https://<blockscout-host>/api/v2",
     "source": "// inline Solidity (alternative to repo)",
-    "notes": "anything the submitter wants Argus to know / known-issues doc URL"
+    "notes": "anything the submitter wants Renegade to know / known-issues doc URL"
   }
 }
 ```

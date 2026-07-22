@@ -1,4 +1,4 @@
-// Argus HTTP service.
+// Renegade HTTP service.
 //   GET  /health          — liveness (marketplace heartbeat)
 //   POST /audit           — x402-gated; on payment, queues an audit job, returns { jobId }
 //   GET  /audit/:jobId     — poll job status / retrieve the finished report
@@ -87,5 +87,5 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
 });
 
 app.listen(config.port, () => {
-  console.log(`Argus listening on port ${config.port} (model=${config.model}, price=${config.price})`);
+  console.log(`Renegade listening on port ${config.port} (model=${config.model}, price=${config.price})`);
 });

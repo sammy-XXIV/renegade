@@ -1,4 +1,4 @@
-// x402 payment enforcement for Argus — same proven pattern as Fit Check's
+// x402 payment enforcement for Renegade — same proven pattern as Fit Check's
 // payment.ts (OKXFacilitatorClient + x402ResourceServer + ExactEvmScheme +
 // paymentMiddleware), pointed at POST /audit at the configured price.
 //
@@ -35,7 +35,8 @@ export const auditPaymentMiddleware = paymentMiddleware(
         },
       ],
       description:
-        "Adversarial smart-contract security audit. Submit a scope (repo, contract addresses + chain, or source); Argus runs a live-code review with Foundry PoCs and returns a severity-rated findings report.",
+        "Renegade hires itself out as your attacker. It takes a smart contract — deployed address or source — compiles it, and attacks it from a hacker's perspective: forking the live chain and running real exploit code against the actual bytecode, not just reading it for red flags. Every finding comes with the executed Foundry PoC that proved it, rated by severity and likelihood, plus the hypotheses it tried and ruled out. No source code required — works directly from a contract address. " +
+        "Checks: reentrancy, access control, missing authorization, integer issues, precision loss, flash loan attacks, oracle manipulation, front-running, MEV exploits, signature replay, permit misuse, timestamp manipulation, governance attacks, economic exploits, griefing attacks, DoS attacks, state desynchronization, upgradeability issues, storage collisions, initialization flaws, unchecked external calls, ERC20 non-standard behavior, token inflation, reward accounting bugs, liquidity manipulation, cross-chain assumptions, and insolvency risks.",
       mimeType: "application/json",
     },
   },
