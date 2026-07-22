@@ -1,5 +1,5 @@
-// Minimal async job store. Payment settles on the POST /audit response (2xx),
-// then the audit runs in the background; the buyer polls GET /audit/:jobId.
+// Minimal async job store. Payment settles on the POST /attack response (2xx),
+// then the audit runs in the background; the buyer polls GET /attack/:jobId.
 // Persisted to a JSON file so a restart doesn't lose in-flight results.
 // Swap for a real DB (Postgres on a Railway plugin) when volume warrants it.
 

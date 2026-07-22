@@ -9,7 +9,7 @@ Submit a scope → Renegade runs a **full agentic audit** (live-code review + Fo
 Three layers (the model every ASP here uses):
 
 1. **This backend (Railway)** — runs the audit by driving a Claude tool-use loop with Foundry/cast/git/curl in the container.
-2. **x402 payment** enforced at `POST /audit` (USD₮0 on X Layer, `eip155:196`). Unpaid requests get a 402; the engine only runs for settled payments.
+2. **x402 payment** enforced at `POST /attack` (USD₮0 on X Layer, `eip155:196`). Unpaid requests get a 402; the engine only runs for settled payments.
 3. **ERC-8004 listing** on OKX.AI pointing at this endpoint — discovery, identity, reviews, liveness heartbeat.
 
 ## API
@@ -17,8 +17,8 @@ Three layers (the model every ASP here uses):
 | Method & path | Description |
 |---|---|
 | `GET /health` | Liveness (marketplace heartbeat). |
-| `POST /audit` | **x402-gated.** Body: `{ scope }`. On payment, queues a job → `202 { jobId, poll }`. |
-| `GET /audit/:jobId` | Poll status; returns the report when `status: "done"`. |
+| `POST /attack` | **x402-gated.** Body: `{ scope }`. On payment, queues a job → `202 { jobId, poll }`. |
+| `GET /attack/:jobId` | Poll status; returns the report when `status: "done"`. |
 
 ### Scope shape
 
@@ -53,5 +53,5 @@ cp .env.example .env   # fill in keys
 npm install
 npm run dev            # tsx watch
 # unpaid probe should 402:
-curl -s -X POST localhost:3000/audit -H 'content-type: application/json' -d '{"scope":{"source":"contract C{}"}}' -i | head -1
+curl -s -X POST localhost:3000/attack -H 'content-type: application/json' -d '{"scope":{"source":"contract C{}"}}' -i | head -1
 ```

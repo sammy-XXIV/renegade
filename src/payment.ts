@@ -1,6 +1,6 @@
 // x402 payment enforcement for Renegade — same proven pattern as Fit Check's
 // payment.ts (OKXFacilitatorClient + x402ResourceServer + ExactEvmScheme +
-// paymentMiddleware), pointed at POST /audit at the configured price.
+// paymentMiddleware), pointed at POST /attack at the configured price.
 //
 // Unpaid/unsigned requests get a 402 and never reach the handler, so the
 // (expensive) audit engine only runs for paid jobs.
@@ -25,7 +25,7 @@ resourceServer.register(config.network as CaipNetwork, new ExactEvmScheme());
 
 export const auditPaymentMiddleware = paymentMiddleware(
   {
-    "POST /audit": {
+    "POST /attack": {
       accepts: [
         {
           scheme: "exact",

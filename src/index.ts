@@ -1,7 +1,7 @@
 // Renegade HTTP service.
 //   GET  /health          — liveness (marketplace heartbeat)
-//   POST /audit           — x402-gated; on payment, queues an audit job, returns { jobId }
-//   GET  /audit/:jobId     — poll job status / retrieve the finished report
+//   POST /attack           — x402-gated; on payment, queues an audit job, returns { jobId }
+//   GET  /attack/:jobId     — poll job status / retrieve the finished report
 //
 // The audit is a multi-minute agentic job, so POST returns immediately (202)
 // after payment settles and the work runs in the background — unlike Fit
@@ -37,7 +37,7 @@ function startAudit(jobId: string, scope: unknown): void {
 // Paid entrypoint. Payment middleware runs first — unpaid requests get a 402
 // and never reach this handler (so the audit engine only ever runs for a
 // settled payment).
-app.post("/audit", auditPaymentMiddleware, (req, res) => {
+app.post("/attack", auditPaymentMiddleware, (req, res) => {
   console.log("[renegade] paid audit request received");
   const scope = req.body?.scope ?? req.body;
 
@@ -66,17 +66,17 @@ app.post("/audit", auditPaymentMiddleware, (req, res) => {
   res.status(202).json({
     jobId: job.id,
     status: job.status,
-    poll: `/audit/${job.id}`,
+    poll: `/attack/${job.id}`,
     note: "Audit running. Poll the `poll` URL until status is 'done' or 'failed'.",
   });
 });
 
 // x402 convention: non-POST to a paid endpoint → 405, not a generic 404.
-app.all("/audit", (_req, res) => {
+app.all("/attack", (_req, res) => {
   res.set("Allow", "POST").status(405).json({ error: "method not allowed, use POST" });
 });
 
-app.get("/audit/:jobId", (req, res) => {
+app.get("/attack/:jobId", (req, res) => {
   const job = getJob(req.params.jobId);
   if (!job) {
     res.status(404).json({ error: "job not found" });
