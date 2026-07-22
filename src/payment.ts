@@ -6,6 +6,7 @@
 // Unpaid/unsigned requests get a 402 and never reach the handler, so the
 // (expensive) audit engine only runs for paid jobs.
 
+import type express from "express";
 import { paymentMiddleware, x402ResourceServer } from "@okxweb3/x402-express";
 import { ExactEvmScheme } from "@okxweb3/x402-evm/exact/server";
 import { OKXFacilitatorClient } from "@okxweb3/x402-core";
@@ -56,3 +57,24 @@ export const auditPaymentMiddleware = paymentMiddleware(
   },
   resourceServer
 );
+
+/**
+ * Payer address + settled amount, for the refund ledger. Same proven approach
+ * as Frank's payerOf (verified against the installed SDK — the express
+ * middleware's exact-scheme path doesn't attach payment context to `req`):
+ * read it back from the PAYMENT-SIGNATURE header the middleware already
+ * verified. The EIP-3009 authorization's `from` is the paying wallet;
+ * `accepted.amount` is the settled amount in base units.
+ */
+export function paymentInfoOf(req: express.Request): { payer: string; amountBaseUnits: string } {
+  const header = req.header("payment-signature") ?? req.header("x-payment");
+  if (!header) throw new Error("no verified payment on request");
+  const payload = JSON.parse(Buffer.from(header, "base64").toString("utf8")) as {
+    payload?: { authorization?: { from?: string } };
+    accepted?: { amount?: string };
+  };
+  const from = payload?.payload?.authorization?.from;
+  const amount = payload?.accepted?.amount;
+  if (!from || !amount) throw new Error("payment payload missing payer or amount");
+  return { payer: from.toLowerCase(), amountBaseUnits: amount };
+}

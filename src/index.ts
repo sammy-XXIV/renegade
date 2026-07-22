@@ -11,9 +11,10 @@
 
 import express from "express";
 import { config } from "./config.js";
-import { auditPaymentMiddleware } from "./payment.js";
+import { auditPaymentMiddleware, paymentInfoOf } from "./payment.js";
 import { createJob, getJob, updateJob, publicView } from "./jobs.js";
 import { runAudit, type EngineCaps } from "./engine.js";
+import { recordFailure } from "./refunds.js";
 
 process.on("uncaughtException", (err) => console.error("uncaughtException:", err));
 process.on("unhandledRejection", (err) => console.error("unhandledRejection:", err));
@@ -26,14 +27,34 @@ app.get("/health", (_req, res) => {
 });
 
 // Kick the audit off in the background. Never throws into the request path.
-function startAudit(jobId: string, scope: unknown, caps: EngineCaps): void {
+// One retry on a thrown failure (sandbox crash, transient API error) before
+// giving up — reduces how often a paid job actually needs a refund. If both
+// attempts fail, the payment already settled on job acceptance (see README
+// §Security notes), so it goes in the refund ledger for a human to process —
+// this service can't send funds itself.
+async function startAudit(
+  jobId: string,
+  scope: unknown,
+  caps: EngineCaps,
+  tier: "attack" | "triage",
+  payer: string,
+  amountBaseUnits: string
+): Promise<void> {
   updateJob(jobId, { status: "running" });
-  runAudit(jobId, scope, caps)
-    .then(({ report, meta }) => updateJob(jobId, { status: "done", report, meta }))
-    .catch((err) => {
-      console.error(`[audit ${jobId}] failed:`, err);
-      updateJob(jobId, { status: "failed", error: (err as Error).message });
-    });
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const { report, meta } = await runAudit(jobId, scope, caps);
+      updateJob(jobId, { status: "done", report, meta });
+      return;
+    } catch (err) {
+      const message = (err as Error).message;
+      console.error(`[audit ${jobId}] attempt ${attempt} failed:`, err);
+      if (attempt === 2) {
+        updateJob(jobId, { status: "failed", error: message });
+        recordFailure({ jobId, payer, amountBaseUnits, tier, reason: message });
+      }
+    }
+  }
 }
 
 function validateScope(scope: unknown): string | null {
@@ -52,7 +73,7 @@ function validateScope(scope: unknown): string | null {
 }
 
 // Shared handler for both priced tiers — same scope shape, different caps and poll prefix.
-function makeAuditRoute(pollPrefix: string, caps: EngineCaps) {
+function makeAuditRoute(pollPrefix: string, tier: "attack" | "triage", caps: EngineCaps) {
   return (req: express.Request, res: express.Response) => {
     console.log(`[renegade] paid ${pollPrefix} request received`);
     const scope = req.body?.scope ?? req.body;
@@ -63,8 +84,18 @@ function makeAuditRoute(pollPrefix: string, caps: EngineCaps) {
       return;
     }
 
+    // Payment already verified by the middleware — this just reads back who
+    // paid and how much, for the refund ledger if the job later fails.
+    let payer = "unknown";
+    let amountBaseUnits = "unknown";
+    try {
+      ({ payer, amountBaseUnits } = paymentInfoOf(req));
+    } catch (err) {
+      console.error(`[renegade] could not read payer info for a paid request:`, err);
+    }
+
     const job = createJob(scope);
-    startAudit(job.id, scope, caps);
+    void startAudit(job.id, scope, caps, tier, payer, amountBaseUnits);
 
     res.status(202).json({
       jobId: job.id,
@@ -81,12 +112,16 @@ function makeAuditRoute(pollPrefix: string, caps: EngineCaps) {
 app.post(
   "/attack",
   auditPaymentMiddleware,
-  makeAuditRoute("attack", { maxToolIterations: config.maxToolIterations, maxWallclockSec: config.maxWallclockSec, mode: "full" })
+  makeAuditRoute("attack", "attack", {
+    maxToolIterations: config.maxToolIterations,
+    maxWallclockSec: config.maxWallclockSec,
+    mode: "full",
+  })
 );
 app.post(
   "/triage",
   auditPaymentMiddleware,
-  makeAuditRoute("triage", {
+  makeAuditRoute("triage", "triage", {
     maxToolIterations: config.triageMaxToolIterations,
     maxWallclockSec: config.triageMaxWallclockSec,
     mode: "triage",

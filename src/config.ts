@@ -32,9 +32,16 @@ export const config = {
   // runtime
   workspaceRoot: process.env.WORKSPACE_ROOT ?? "./workspaces",
   jobsFile: process.env.JOBS_FILE ?? "./jobs.json",
+  refundsFile: process.env.REFUNDS_FILE ?? "./refunds.json",
 
   // per-tool-call bash timeout (ms)
   bashTimeoutMs: num("BASH_TIMEOUT_MS", 180_000),
+
+  // sandbox resource limits (ulimit, applied per bash call) — bound a single
+  // command's blast radius even though this isn't full container isolation
+  sandboxMaxMemoryKb: num("SANDBOX_MAX_MEMORY_KB", 2_097_152), // 2GB
+  sandboxMaxProcesses: num("SANDBOX_MAX_PROCESSES", 64), // fork-bomb guard
+  sandboxMaxFileSizeKb: num("SANDBOX_MAX_FILE_SIZE_KB", 1_048_576), // 1GB per file
 } as const;
 
 /** Fail fast at boot if required payment env is missing (mirrors fit-check). */
