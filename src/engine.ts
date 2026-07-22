@@ -74,12 +74,26 @@ function scopeToPrompt(scope: unknown): string {
   return lines.join("\n");
 }
 
+export interface EngineCaps {
+  maxToolIterations: number;
+  maxWallclockSec: number;
+  /** "triage" relaxes the PoC-required bar in the prompt — there isn't enough
+   * budget to build and run a Foundry PoC for every finding in a few minutes. */
+  mode?: "full" | "triage";
+}
+
 export interface EngineResult {
   report: AuditReport;
   meta: { iterations: number; wallclockSec: number; model: string; hitCap: boolean };
 }
 
-export async function runAudit(jobId: string, scope: unknown): Promise<EngineResult> {
+const DEFAULT_CAPS: EngineCaps = {
+  maxToolIterations: config.maxToolIterations,
+  maxWallclockSec: config.maxWallclockSec,
+  mode: "full",
+};
+
+export async function runAudit(jobId: string, scope: unknown, caps: EngineCaps = DEFAULT_CAPS): Promise<EngineResult> {
   const sandbox = new Sandbox(jobId);
   const startedAt = Date.now();
   const messages: Anthropic.MessageParam[] = [{ role: "user", content: scopeToPrompt(scope) }];
@@ -87,11 +101,19 @@ export async function runAudit(jobId: string, scope: unknown): Promise<EngineRes
   let iterations = 0;
   let hitCap = false;
 
+  const triageNote =
+    caps.mode === "triage"
+      ? "\n\n[QUICK TRIAGE MODE] You have a much shorter budget than a full audit — a few minutes, not twenty. " +
+        "Prioritize breadth over depth: skim for the highest-risk red flags and state your confidence, rather than " +
+        "building a full Foundry PoC for every finding. Flag anything that would need deeper verification in a full " +
+        "attack simulation, and say so explicitly in the report rather than skipping it silently."
+      : "";
+
   try {
     while (true) {
       const wallclockSec = (Date.now() - startedAt) / 1000;
-      const overIterations = iterations >= config.maxToolIterations;
-      const overTime = wallclockSec >= config.maxWallclockSec;
+      const overIterations = iterations >= caps.maxToolIterations;
+      const overTime = wallclockSec >= caps.maxWallclockSec;
 
       // When over budget, force the model to wrap up with a report on this turn.
       const forceReport = overIterations || overTime;
@@ -102,11 +124,12 @@ export async function runAudit(jobId: string, scope: unknown): Promise<EngineRes
         max_tokens: config.maxOutputTokensPerTurn,
         system:
           ARGUS_SYSTEM_PROMPT +
+          triageNote +
           (forceReport
             ? "\n\n[BUDGET REACHED] You are out of budget. Call submit_report NOW with whatever you have."
-            : `\n\n[BUDGET] iteration ${iterations}/${config.maxToolIterations}, ${Math.round(
+            : `\n\n[BUDGET] iteration ${iterations}/${caps.maxToolIterations}, ${Math.round(
                 wallclockSec
-              )}s/${config.maxWallclockSec}s elapsed.`),
+              )}s/${caps.maxWallclockSec}s elapsed.`),
         tools: [BASH_TOOL, SUBMIT_REPORT_TOOL],
         tool_choice: forceReport ? { type: "tool", name: "submit_report" } : { type: "auto" },
         messages,

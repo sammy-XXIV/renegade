@@ -4,21 +4,25 @@ Adversarial smart-contract security auditor, packaged as an x402-paid A2MCP agen
 
 Submit a scope → Renegade runs a **full agentic audit** (live-code review + Foundry PoCs) inside a sandboxed container → returns a severity-rated findings report. Same methodology as the `bug-hunt` skill: audit the deployed bytecode not the docs, kill false positives before claiming them, prove every real bug with a runnable PoC.
 
+Two priced tiers, same engine: the full **attack simulation** (`/attack`, deep, PoC-verified), and a cheap fast **quick triage** (`/triage`, a few minutes, red-flags-with-reasoning rather than full PoC verification) — run triage first, then the full simulation if it flags something.
+
 ## How it works
 
 Three layers (the model every ASP here uses):
 
 1. **This backend (Railway)** — runs the audit by driving a Claude tool-use loop with Foundry/cast/git/curl in the container.
-2. **x402 payment** enforced at `POST /attack` (USD₮0 on X Layer, `eip155:196`). Unpaid requests get a 402; the engine only runs for settled payments.
-3. **ERC-8004 listing** on OKX.AI pointing at this endpoint — discovery, identity, reviews, liveness heartbeat.
+2. **x402 payment** enforced at `POST /attack` and `POST /triage` (USD₮0 on X Layer, `eip155:196`). Unpaid requests get a 402; the engine only runs for settled payments.
+3. **ERC-8004 listing** on OKX.AI pointing at these endpoints — discovery, identity, reviews, liveness heartbeat.
 
 ## API
 
 | Method & path | Description |
 |---|---|
 | `GET /health` | Liveness (marketplace heartbeat). |
-| `POST /attack` | **x402-gated.** Body: `{ scope }`. On payment, queues a job → `202 { jobId, poll }`. |
+| `POST /attack` | **x402-gated, full price.** Body: `{ scope }`. On payment, queues a job → `202 { jobId, poll }`. |
 | `GET /attack/:jobId` | Poll status; returns the report when `status: "done"`. |
+| `POST /triage` | **x402-gated, cheap tier.** Same body shape, shorter cap. On payment, queues a job → `202 { jobId, poll }`. |
+| `GET /triage/:jobId` | Poll status for a triage job. |
 
 ### Scope shape
 
@@ -39,7 +43,7 @@ Provide at least one target:
 
 ## Config (env — set on Railway, never commit)
 
-See `.env.example`. Required: `ANTHROPIC_API_KEY`, `PAY_TO_ADDRESS`, `OKX_API_KEY`/`OKX_SECRET_KEY`/`OKX_PASSPHRASE`. Caps (`MAX_TOOL_ITERATIONS`, `MAX_WALLCLOCK_SEC`, …) bound per-job cost so a single audit can't exceed the fee.
+See `.env.example`. Required: `ANTHROPIC_API_KEY`, `PAY_TO_ADDRESS`, `OKX_API_KEY`/`OKX_SECRET_KEY`/`OKX_PASSPHRASE`. Caps (`MAX_TOOL_ITERATIONS`, `MAX_WALLCLOCK_SEC` for `/attack`; `TRIAGE_MAX_TOOL_ITERATIONS`, `TRIAGE_MAX_WALLCLOCK_SEC` for `/triage`) bound per-job cost so a single job can't exceed its fee.
 
 ## Security notes
 
